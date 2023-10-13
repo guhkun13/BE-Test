@@ -19,6 +19,9 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
+const initModels = require("./init-models");
+db.models = initModels(sequelize);
+
 // define model example
 // db.user = require("../models/User")(sequelize, Sequelize);
 
