@@ -142,20 +142,19 @@ exports.refactoreMe2 = (req, res) => {
       values: values,
     })
     .then((data) => {
-      console.log("berhasil create survey");
-      // db.models.users
-      //   .update(
-      //     {
-      //       dosurvey: true,
-      //     },
-      //     {
-      //       where: { id: req.body.userId },
-      //     }
-      //   )
-      //   .then(() => {
-      //     console.log("success");
-      //   })
-      //   .catch((err) => console.log(err));
+      db.models.users
+        .update(
+          {
+            dosurvey: true,
+          },
+          {
+            where: { id: req.body.userId },
+          }
+        )
+        .then(() => {
+          console.log("success");
+        })
+        .catch((err) => console.log(err));
 
       res.status(201).send({
         statusCode: 201,
