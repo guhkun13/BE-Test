@@ -1,7 +1,13 @@
+const CronJob = require("cron").CronJob;
+
 const db = require("../models");
 const sequelize = require("sequelize");
+const axios = require("axios");
 
 const MINIMUM_VALUES = 5;
+const LIMIT = 1;
+const LIVE_THREAT_URL =
+  "https://livethreatmap.radware.com/api/map/attacks?limit=" + LIMIT;
 
 exports.refactoreMe1 = async (req, res) => {
   // function ini sebenarnya adalah hasil survey dri beberapa pertanyaan,
@@ -174,10 +180,89 @@ exports.refactoreMe2 = (req, res) => {
     });
 };
 
-exports.callmeWebSocket = (req, res) => {
-  // do something
+const job = new CronJob(
+  "*/10 * * * *",
+  function () {
+    console.log("This is message from cronjob");
+    console.log(new Date());
+    updateDataLiveThreat();
+  },
+  null,
+  true,
+  "Asia/Jakarta"
+);
+// jobs.start();
+
+async function callApi() {
+  console.log("callApi", LIVE_THREAT_URL);
+  let resp = await axios.get(LIVE_THREAT_URL);
+  return resp.data;
+}
+
+async function updateDataLiveThreat() {
+  let bulkCreateData = [];
+  let results = await callApi();
+  console.log(results.length);
+  results.forEach((result) => {
+    console.log(result.length);
+
+    result.forEach((data) => {
+      let newData = {
+        sourceCountry: data.sourceCountry,
+        destinationCountry: data.destinationCountry,
+        millisecond: data.millisecond,
+        type: data.type,
+        weight: data.weight,
+        attackTime: data.attackTime,
+      };
+      bulkCreateData.push(newData);
+    });
+  });
+
+  console.log("bulkCreateData");
+  db.models.live_threat.bulkCreate(bulkCreateData);
+}
+
+exports.callmeWebSocket = async (req, res) => {
+  console.log("callmeWebSocket");
+
+  // updateDataLiveThreat();
+
+  res.send({
+    success: true,
+    statusCode: 200,
+    message: "update data live threat ",
+  });
 };
 
-exports.getData = (req, res) => {
-  // do something
+exports.getData = async (req, res) => {
+  let myQuery = `SELECT   
+  lt."type" as "attackType",
+  COUNT(CASE WHEN lt."sourceCountry" IS NOT NULL THEN lt.id END) as "countSourceCountry",
+  COUNT(CASE WHEN lt."destinationCountry" IS NOT NULL THEN lt.id END) as "countDestinationCountry"
+FROM live_threat lt
+GROUP BY lt."type"
+ORDER BY lt."type"`;
+
+  const [rows, metadata] = await db.sequelize.query(myQuery);
+
+  let totalSourceCountry = 0;
+  let totalDestinationCountry = 0;
+  
+  rows.forEach((row) => {
+    totalSourceCountry += parseInt(row.countSourceCountry);
+    totalDestinationCountry += parseInt(row.countDestinationCountry);
+  });
+
+  let processedData = {
+    label: ["sourceCountry", "destinationCountry"],
+    total: [totalSourceCountry, totalDestinationCountry],
+  };
+
+  res.send({
+    success: true,
+    statusCode: 200,
+    data: processedData,
+    rawData: rows,
+  });
 };

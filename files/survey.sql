@@ -54,3 +54,19 @@ INSERT INTO public.surveys ("values","createdAt","updatedAt","userId") VALUES
 	 ('{100,100,90,90,100}','2022-12-22 08:56:50.696+07','2022-12-22 08:56:50.696+07',1),
 	 ('{90,100,100,80,90}','2022-12-22 09:08:50.908+07','2022-12-22 09:08:50.908+07',2),
 	 ('{80,80,80,80,80}','2022-12-22 21:05:32.317+07','2022-12-22 21:05:32.317+07',3);
+
+-- Table: public.live_threat
+
+-- DROP TABLE IF EXISTS public.live_threat;
+
+CREATE TABLE IF NOT EXISTS public.live_threat
+(
+    id integer NOT NULL DEFAULT nextval('live_threat_id_seq'::regclass),
+    "sourceCountry" character(2) COLLATE pg_catalog."default",
+    "destinationCountry" character(2) COLLATE pg_catalog."default",
+    millisecond bigint,
+    type character varying(50) COLLATE pg_catalog."default",
+    weight integer,
+    "attackTime" timestamp without time zone,
+    CONSTRAINT live_threat_pkey PRIMARY KEY (id)
+)

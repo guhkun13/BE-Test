@@ -24,5 +24,8 @@ module.exports = (app) => {
     exampleController.refactoreMe2
   );
 
+  router.get("/ws", exampleController.callmeWebSocket);
+  router.get("/getData", exampleController.getData);
+
   app.use("/api/data", router);
 };
