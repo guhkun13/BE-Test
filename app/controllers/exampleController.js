@@ -242,41 +242,6 @@ exports.callmeWebSocket = async (req, res) => {
   });
 };
 
-exports.getRedis = async (req, res) => {
-  console.log("actual function here");
-  let search = req.params.search;
-  let id = req.params.id;
-  let cacheKey = search + "-" + id;
-  let resData = [];
-  try {
-    let cacheResult = await redisClient.get(cacheKey);
-    if (cacheResult) {
-      console.log("from REDIS");
-      resData = JSON.parse(cacheResult);
-    } else {
-      console.log("NOT from REDIS");
-      let finalUrl = starwarsURL + search + "/" + id;
-      let data = await axios(finalUrl);
-      resData = data.data;
-
-      //add to cache
-      redisClient.setEx(cacheKey, CACHE_TIME, JSON.stringify(data.data));
-    }
-
-    res.send({
-      success: true,
-      statusCode: 200,
-      data: resData,
-    });
-  } catch (error) {
-    res.send({
-      success: false,
-      statusCode: 400,
-      data: [],
-    });
-  }
-};
-
 const getDataLiveThreat = async () => {
   let myQuery = `SELECT   
   lt."type" as "attackType",
@@ -346,3 +311,40 @@ exports.getData = async (req, res) => {
     });
   }
 };
+
+
+// let starwarsURL = "https://swapi.dev/api/"
+// exports.getRedis = async (req, res) => {
+//   console.log("actual function here");
+//   let search = req.params.search;
+//   let id = req.params.id;
+//   let cacheKey = search + "-" + id;
+//   let resData = [];
+//   try {
+//     let cacheResult = await redisClient.get(cacheKey);
+//     if (cacheResult) {
+//       console.log("from REDIS");
+//       resData = JSON.parse(cacheResult);
+//     } else {
+//       console.log("NOT from REDIS");
+//       let finalUrl = starwarsURL + search + "/" + id;
+//       let data = await axios(finalUrl);
+//       resData = data.data;
+
+//       //add to cache
+//       redisClient.setEx(cacheKey, CACHE_TIME, JSON.stringify(data.data));
+//     }
+
+//     res.send({
+//       success: true,
+//       statusCode: 200,
+//       data: resData,
+//     });
+//   } catch (error) {
+//     res.send({
+//       success: false,
+//       statusCode: 400,
+//       data: [],
+//     });
+//   }
+// };
