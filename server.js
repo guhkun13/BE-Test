@@ -2,9 +2,11 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const ws = require("ws");
 dotenv.config();
+
 const app = express();
+
+const ws = require("ws");
 
 const corsOptions = {
   origin: ["http://localhost:8080"],
@@ -20,6 +22,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // database
 const db = require("./app/models");
+const { redisGetCache } = require("./app/middleware/exampleMiddleware");
 
 db.sequelize.sync();
 
@@ -34,6 +37,7 @@ db.sequelize.sync();
 app.get("/", (req, res) => {
   res.json({ message: "Hello" });
 });
+
 
 // routes
 require("./app/routes/exampleRoutes")(app);

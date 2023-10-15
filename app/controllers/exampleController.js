@@ -4,10 +4,24 @@ const db = require("../models");
 const sequelize = require("sequelize");
 const axios = require("axios");
 
+const redis = require("redis");
+const CACHE_TIME = 180; // 3 menit, sama dengan cron-time
+
 const MINIMUM_VALUES = 5;
 const LIMIT = 1;
 const LIVE_THREAT_URL =
   "https://livethreatmap.radware.com/api/map/attacks?limit=" + LIMIT;
+
+const CACHE_KEY_SUMMARIZE = "live-threat-summarize";
+const CACHE_KEY_ALL_THREAT = "live-threat-all-data";
+
+// init redisClient
+let redisClient;
+(async () => {
+  redisClient = redis.createClient();
+  redisClient.on("error", (error) => console.error(`Error : ${error}`));
+  await redisClient.connect();
+})();
 
 exports.refactoreMe1 = async (req, res) => {
   // function ini sebenarnya adalah hasil survey dri beberapa pertanyaan,
@@ -181,20 +195,16 @@ exports.refactoreMe2 = (req, res) => {
 };
 
 const job = new CronJob(
-  "*/10 * * * *",
+  "*/3 * * * *",
   function () {
-    console.log("This is message from cronjob");
-    console.log(new Date());
     updateDataLiveThreat();
   },
   null,
   true,
   "Asia/Jakarta"
 );
-// jobs.start();
 
 async function callApi() {
-  console.log("callApi", LIVE_THREAT_URL);
   let resp = await axios.get(LIVE_THREAT_URL);
   return resp.data;
 }
@@ -204,8 +214,6 @@ async function updateDataLiveThreat() {
   let results = await callApi();
   console.log(results.length);
   results.forEach((result) => {
-    console.log(result.length);
-
     result.forEach((data) => {
       let newData = {
         sourceCountry: data.sourceCountry,
@@ -219,14 +227,13 @@ async function updateDataLiveThreat() {
     });
   });
 
-  console.log("bulkCreateData");
   db.models.live_threat.bulkCreate(bulkCreateData);
 }
 
 exports.callmeWebSocket = async (req, res) => {
   console.log("callmeWebSocket");
 
-  // updateDataLiveThreat();
+  updateDataLiveThreat();
 
   res.send({
     success: true,
@@ -235,7 +242,42 @@ exports.callmeWebSocket = async (req, res) => {
   });
 };
 
-exports.getData = async (req, res) => {
+exports.getRedis = async (req, res) => {
+  console.log("actual function here");
+  let search = req.params.search;
+  let id = req.params.id;
+  let cacheKey = search + "-" + id;
+  let resData = [];
+  try {
+    let cacheResult = await redisClient.get(cacheKey);
+    if (cacheResult) {
+      console.log("from REDIS");
+      resData = JSON.parse(cacheResult);
+    } else {
+      console.log("NOT from REDIS");
+      let finalUrl = starwarsURL + search + "/" + id;
+      let data = await axios(finalUrl);
+      resData = data.data;
+
+      //add to cache
+      redisClient.setEx(cacheKey, CACHE_TIME, JSON.stringify(data.data));
+    }
+
+    res.send({
+      success: true,
+      statusCode: 200,
+      data: resData,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      statusCode: 400,
+      data: [],
+    });
+  }
+};
+
+const getDataLiveThreat = async () => {
   let myQuery = `SELECT   
   lt."type" as "attackType",
   COUNT(CASE WHEN lt."sourceCountry" IS NOT NULL THEN lt.id END) as "countSourceCountry",
@@ -248,7 +290,7 @@ ORDER BY lt."type"`;
 
   let totalSourceCountry = 0;
   let totalDestinationCountry = 0;
-  
+
   rows.forEach((row) => {
     totalSourceCountry += parseInt(row.countSourceCountry);
     totalDestinationCountry += parseInt(row.countDestinationCountry);
@@ -259,10 +301,48 @@ ORDER BY lt."type"`;
     total: [totalSourceCountry, totalDestinationCountry],
   };
 
-  res.send({
-    success: true,
-    statusCode: 200,
-    data: processedData,
-    rawData: rows,
-  });
+  return [rows, processedData];
+};
+
+exports.getData = async (req, res) => {
+  let resultSummarized = [];
+  let resultAllData = [];
+
+  try {
+    let cacheResult = await redisClient.get(CACHE_KEY_SUMMARIZE);
+
+    if (cacheResult) {
+      resultSummarized = JSON.parse(cacheResult);
+
+      let cacheResultAllData = await redisClient.get(CACHE_KEY_ALL_THREAT);
+      resultAllData = JSON.parse(cacheResultAllData);
+    } else {
+      let [resultAllData, resultSummarized] = await getDataLiveThreat();
+
+      //add to cache
+      redisClient.setEx(
+        CACHE_KEY_SUMMARIZE,
+        CACHE_TIME,
+        JSON.stringify(resultSummarized)
+      );
+      redisClient.setEx(
+        CACHE_KEY_ALL_THREAT,
+        CACHE_TIME,
+        JSON.stringify(resultAllData)
+      );
+    }
+
+    res.send({
+      success: true,
+      statusCode: 200,
+      data: resultSummarized,
+      rawData: resultAllData,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      statusCode: 400,
+      data: [],
+    });
+  }
 };

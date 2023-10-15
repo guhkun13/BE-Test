@@ -1,5 +1,7 @@
 const db = require("../models");
-// const model = db.model;
+const redis = require("redis");
+
+let redisClient = redis.createClient(6379);
 
 const exampleMiddlewareFunction = (req, res, next) => {
   // do something
