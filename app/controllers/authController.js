@@ -1,8 +1,6 @@
 const db = require("../models");
 const jwt = require("jsonwebtoken");
-
-const TOKEN_SECRET = "qwerty123";
-const TOKEN_EXPIRES = "1h";
+const configJwt = require("../config/jwt");
 
 function requiredField(field) {
   return field != undefined && field != "";
@@ -56,8 +54,8 @@ const loginController = async (req, res) => {
         role: existingUser.role,
         division: existingUser.division,
       },
-      TOKEN_SECRET,
-      { expiresIn: TOKEN_EXPIRES }
+      configJwt.TOKEN_SECRET,
+      { expiresIn: configJwt.TOKEN_EXPIRES }
     );
   } catch (err) {
     return res.status(500).json({
