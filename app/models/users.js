@@ -62,6 +62,22 @@ module.exports = function(sequelize, DataTypes) {
     cuurentLeave: {
       type: DataTypes.INTEGER,
       allowNull: true
+    },
+    password: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    username: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    role: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    division: {
+      type: DataTypes.STRING(100),
+      allowNull: true
     }
   }, {
     sequelize,

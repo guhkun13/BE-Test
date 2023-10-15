@@ -38,9 +38,13 @@ app.get("/", (req, res) => {
   res.json({ message: "Hello" });
 });
 
+// login
+const authController = require("./app/controllers/authController");
+app.post("/login", authController.loginController);
 
 // routes
 require("./app/routes/exampleRoutes")(app);
+require("./app/routes/protectedRoutes")(app);
 
 // Set up a headless websocket server that prints any events that come in.
 const wsServer = new ws.Server({ noServer: true });

@@ -26,7 +26,6 @@ module.exports = (app) => {
 
   router.get("/ws", exampleController.callmeWebSocket);
   router.get("/getData", exampleController.getData);
-  router.get("/redis/:search/:id", exampleController.getRedis);
 
   app.use("/api/data", router);
 };
