@@ -4,13 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "test": "mocha ./app/tests/*.test.js"
   },
   "author": "daffaquraisy",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.4.0",
     "body-parser": "^1.19.1",
+    "chai-http": "^4.4.0",
     "cors": "^2.8.5",
     "cron": "^3.1.1",
     "dotenv": "^16.1.4",
@@ -27,5 +29,14 @@
     "sequelize": "^6.16.0",
     "sequelize-auto": "^0.8.8",
     "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "rewire": "^7.0.0",
+    "sandbox": "^0.8.6",
+    "sinon": "^16.1.0",
+    "sinon-chai": "^3.7.0",
+    "supertest": "^6.3.3"
   }
 }

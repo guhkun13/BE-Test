@@ -6,65 +6,40 @@ function requiredField(field) {
   return field != undefined && field != "";
 }
 
+const errorBadRequest = "Bad Request";
 const errorUsernameNotFound = "Username not found";
 const errorAccountNotFound = "Account not found";
 
 // Handling post request
 const loginController = async (req, res) => {
-  let { username, password } = req.body;
+  let error;
+  let existingUser;
 
-  console.log("[Step-1]: verify required fields");
-  if (!requiredField(username) || !requiredField(password)) {
+  error = validateLoginRequest(req);
+  if (error) {
     return res.status(400).json({
       success: false,
-      message: "Bad Request",
+      error: errorBadRequest,
     });
   }
 
-  console.log("[Step-2]: verify username");
-
-  let existingUser;
-  try {
-    existingUser = await db.models.users.findOne({
-      where: { username: username },
-    });
-  } catch {
-    return res.status(404).json({
+  existingUser = await getUser(req);
+  if (!existingUser) {
+    return res.status(400).json({
       success: false,
-      message: errorUsernameNotFound,
+      error: errorAccountNotFound,
     });
   }
 
-  console.log("[Step-3]: verify username & password");
-  if (existingUser.password != password) {
-    return res.status(404).send({
+  token = generateToken(existingUser);
+
+  if (error) {
+    return res.status(400).json({
       success: false,
-      message: errorAccountNotFound,
+      error: error,
+      data: [],
     });
   }
-
-  console.log("[Step-4]: generate JWT");
-  let token;
-  try {
-    //Creating jwt token
-    token = jwt.sign(
-      {
-        userId: existingUser.id,
-        username: existingUser.username,
-        role: existingUser.role,
-        division: existingUser.division,
-      },
-      configJwt.TOKEN_SECRET,
-      { expiresIn: configJwt.TOKEN_EXPIRES }
-    );
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-
-  console.log("[Step-5]: return generated JWT");
 
   return res.status(200).json({
     success: true,
@@ -75,6 +50,58 @@ const loginController = async (req, res) => {
       token: token,
     },
   });
+};
+
+// helper functions
+
+const validateLoginRequest = (req) => {
+  let { username, password } = req.body;
+  let error = false;
+
+  if (!requiredField(username) || !requiredField(password)) {
+    error = true;
+  }
+
+  return error;
+};
+
+const getUser = async (req) => {
+  let { username, password } = req.body;
+  let user;
+
+  try {
+    user = await db.models.users.findOne({
+      where: { username: username, password: password },
+    });
+  } catch {
+    console.log(errorUsernameNotFound);
+  }
+
+  return user;
+};
+
+const generateToken = (user) => {
+  let token;
+  let error = "";
+  try {
+    //Creating jwt token
+    token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        division: user.division,
+      },
+      configJwt.TOKEN_SECRET,
+      { expiresIn: configJwt.TOKEN_EXPIRES }
+    );
+
+    ok = true;
+  } catch (err) {
+    error = err.message;
+  }
+
+  return { token, error };
 };
 
 module.exports = {
