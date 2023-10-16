@@ -4,16 +4,19 @@ const configJwt = require("../config/jwt");
 
 const ROLE_ADMIN = "admin";
 const ROLE_STAFF = "staff";
+const ERR_PERMISSION_DENIED = "Permission denied";
 
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  let token = null;
+  if (authHeader) {
+    token = authHeader.split(" ")[1];
+  }
 
   if (token == null) return res.sendStatus(401);
 
   jwt.verify(token, configJwt.TOKEN_SECRET, (err, user) => {
-    console.log(err);
-    if (err) return res.sendStatus(403);
+    if (err) return res.sendStatus(401);
 
     req.user = user;
     next();
@@ -21,9 +24,7 @@ const authenticateToken = async (req, res, next) => {
 };
 
 const authenticateRoles = (roles) => {
-
   return (req, res, next) => {
-
     if (roles.includes(req.user.role)) {
       if (req.user.role == ROLE_ADMIN) {
         // skip division
@@ -31,7 +32,10 @@ const authenticateRoles = (roles) => {
       }
       next();
     } else {
-      return res.sendStatus(403);
+      return res.status(403).json({
+        statusCode: 403,
+        message: ERR_PERMISSION_DENIED,
+      });
     }
   };
 };
@@ -39,13 +43,16 @@ const authenticateRoles = (roles) => {
 const authenticateDivisions = (divisions) => {
   return (req, res, next) => {
     if (req.skipAuthenticateDivisions) {
-      next();
+      return next();
     }
 
     if (divisions.includes(req.user.division)) {
       next();
     } else {
-      return res.sendStatus(403);
+      return res.status(403).json({
+        statusCode: 403,
+        message: ERR_PERMISSION_DENIED,
+      });
     }
   };
 };

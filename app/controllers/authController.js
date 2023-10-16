@@ -31,13 +31,12 @@ const loginController = async (req, res) => {
     });
   }
 
-  token = generateToken(existingUser);
+  let { token, errorToken } = generateToken(existingUser);
 
-  if (error) {
+  if (errorToken) {
     return res.status(400).json({
       success: false,
-      error: error,
-      data: [],
+      error: errorToken,
     });
   }
 
