@@ -1,1 +1,0 @@
-./node_modules/sequelize-auto/bin/sequelize-auto -o "./app/models/" -d groot -h localhost -p 5432 -u groot -x iamgroot -e postgres
